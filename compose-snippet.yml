@@ -1,0 +1,14 @@
+# Add this to your docker-compose.yml
+# ================================================
+
+  api-proxy:
+    image: api-proxy:latest
+    container_name: api-proxy
+    restart: unless-stopped
+    environment:
+      - PROXY_AUTH_TOKEN=<makeurown>
+      - ALLOWED_DOMAINS=<comma separated list of domains>
+      - PROXY_TIMEOUT=30
+    networks:
+      - network
+
