@@ -93,131 +93,31 @@ Proxy a request through residential IP. Requires `X-Proxy-Token` header.
 
 ## Claude Skills Integration
 
-This proxy is designed to work with Claude's [Skills system](https://docs.anthropic.com/). Here's how to integrate it.
+This proxy is designed to work with Claude's [Skills system](https://docs.anthropic.com/). A ready-to-use skill is included in the `skill/` directory:
 
-### Option 1: Create a Reusable Proxy Helper
+```
+skill/
+├── skill.md          # Skill definition
+├── proxy_helper.py   # Reusable helper module
+└── fetch.py          # Ad-hoc fetch script
+```
 
-Create a `proxy_helper.py` that your skills can import:
+### Quick Start
 
+**Ad-hoc requests** (when direct fetch fails with 403):
+```bash
+python3 skill/fetch.py "https://api.example.com/endpoint"
+python3 skill/fetch.py "https://api.example.com/endpoint" POST '{"key": "value"}'
+```
+
+**Building new skills**: Copy `skill/proxy_helper.py` into your skill's `scripts/` folder, then:
 ```python
-"""
-proxy_helper.py - Copy this to your skill's scripts/ folder
-"""
-import urllib.request
-import json
+from proxy_helper import proxy_get, proxy_request
 
-PROXY_URL = "https://proxy.yourdomain.com/proxy"
-PROXY_TOKEN = "your-token-here"
-DEFAULT_USER_AGENT = "Claude-Skill/1.0"
-
-def proxy_request(url: str, method: str = "GET", headers: dict = None, body: str = None) -> dict:
-    """Make a request through the residential proxy."""
-    req_headers = headers or {}
-    if "User-Agent" not in req_headers:
-        req_headers["User-Agent"] = DEFAULT_USER_AGENT
-    
-    payload = {"url": url, "method": method, "headers": req_headers}
-    if body:
-        payload["body"] = body
-    
-    req = urllib.request.Request(
-        PROXY_URL,
-        data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "X-Proxy-Token": PROXY_TOKEN
-        }
-    )
-    
-    try:
-        response = urllib.request.urlopen(req, timeout=30)
-        result = json.loads(response.read().decode())
-        
-        if result["status_code"] >= 400:
-            return {"error": f"Target returned {result['status_code']}"}
-        
-        return json.loads(result["body"])
-    except Exception as e:
-        return {"error": str(e)}
-
-def proxy_get(url: str, headers: dict = None) -> dict:
-    """Convenience wrapper for GET requests."""
-    return proxy_request(url, method="GET", headers=headers)
-
-def proxy_post(url: str, body: str, headers: dict = None) -> dict:
-    """Convenience wrapper for POST requests."""
-    return proxy_request(url, method="POST", headers=headers, body=body)
+data = proxy_get("https://api.example.com/endpoint")
 ```
 
-### Option 2: Create an api-proxy Skill
-
-Bundle the helper as a standalone skill that other skills can reference:
-
-```
-api-proxy/
-├── SKILL.md
-└── scripts/
-    └── proxy_helper.py
-```
-
-**SKILL.md:**
-```markdown
----
-name: api-proxy
-description: Routes API requests through residential proxy for APIs that block cloud IPs.
----
-
-# API Proxy Skill
-
-Copy `scripts/proxy_helper.py` to your skill's scripts folder, then:
-
-\`\`\`python
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from proxy_helper import proxy_get
-
-data = proxy_get("https://www.reddit.com/r/homelab.json")
-\`\`\`
-```
-
-### Using in Your Skills
-
-Once you have the proxy helper, use it in your skill scripts:
-
-```python
-#!/usr/bin/env python3
-"""browse_subreddit.py - Example skill script"""
-import sys
-import os
-import json
-
-# Import the proxy helper
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from proxy_helper import proxy_get
-
-def browse_subreddit(subreddit: str, limit: int = 10) -> dict:
-    url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit={limit}"
-    return proxy_get(url)
-
-if __name__ == "__main__":
-    subreddit = sys.argv[1] if len(sys.argv) > 1 else "homelab"
-    result = browse_subreddit(subreddit)
-    print(json.dumps(result, indent=2))
-```
-
-### Skill Structure Example
-
-A complete Reddit skill using the proxy:
-
-```
-reddit/
-├── SKILL.md
-└── scripts/
-    ├── proxy_helper.py      # Copied from api-proxy skill
-    ├── browse_subreddit.py
-    ├── search_reddit.py
-    └── get_post_details.py
-```
+See `skill/skill.md` for full documentation.
 
 ---
 
@@ -233,8 +133,6 @@ reddit/
 Your token lives in:
 1. Container environment variables (not publicly visible)
 2. Your skill files (in Claude's private `/mnt/skills/user/` directory)
-
-**Don't commit tokens to public repos!** Use `.gitignore` or environment variable substitution.
 
 ## Troubleshooting
 
