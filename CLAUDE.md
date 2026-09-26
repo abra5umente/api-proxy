@@ -17,6 +17,9 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 # Run with auto-reload during development
 uvicorn app:app --reload --port 8000
 
+# Run tests
+pip install -r requirements-dev.txt && pytest
+
 # Build Docker image
 docker build -t api-proxy .
 
@@ -32,8 +35,10 @@ Single-file FastAPI application (`app.py`) with two endpoints:
 - `POST /proxy` - Authenticated proxy endpoint (requires `X-Proxy-Token` header)
 
 **Environment variables:**
-- `PROXY_AUTH_TOKEN` (required) - Auth token for `/proxy` requests
+- `PROXY_AUTH_TOKEN` (required, app refuses to start without it) - Auth token for `/proxy` requests
 - `ALLOWED_DOMAINS` - Comma-separated domain whitelist (empty = allow all)
 - `PROXY_TIMEOUT` - Request timeout in seconds (default: 30)
+
+**SSRF protection:** `validate_url()` resolves the host, rejects any non-public address, and returns an IP that the request is pinned to (Host header and `sni_hostname` keep the original name).
 
 **Domain validation:** `is_domain_allowed()` checks against whitelist, supports subdomains (e.g., `reddit.com` allows `oauth.reddit.com`).

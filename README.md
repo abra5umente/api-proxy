@@ -53,7 +53,7 @@ Add `proxy.yourdomain.com` to your Claude allowed domains in Settings.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PROXY_AUTH_TOKEN` | Yes | `changeme` | Auth token for requests |
+| `PROXY_AUTH_TOKEN` | Yes | *(none, startup fails if unset)* | Auth token for requests |
 | `ALLOWED_DOMAINS` | No | *(all)* | Comma-separated domain whitelist |
 | `PROXY_TIMEOUT` | No | `30` | Request timeout in seconds |
 
@@ -125,6 +125,7 @@ See `skill/skill.md` for full documentation.
 
 - **Auth token**: Required for all `/proxy` requests. Generate with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
 - **Domain whitelist**: Restrict which APIs can be proxied
+- **SSRF protection**: Targets must resolve only to public IPs. The request is pinned to the validated IP (with the original Host header and TLS SNI), so DNS rebinding can't redirect it to your LAN
 - **No direct exposure**: Only accessible via Cloudflare Tunnel
 - **No host port binding**: Container doesn't expose ports to host network
 
